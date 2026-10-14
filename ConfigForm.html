@@ -1,0 +1,269 @@
+<div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+    <h2 class="text-2xl font-bold text-slate-800 mb-6 border-b pb-2">
+        <i class="fas fa-cogs text-indigo-600 mr-2"></i>System Configuration
+    </h2>
+
+    <div id="configNotification" class="hidden mb-4 p-4 rounded-md text-sm font-medium relative flex items-center shadow-sm">
+        <span id="configNotifMessage" class="flex items-center"></span>
+        <button onclick="document.getElementById('configNotification').classList.add('hidden')" class="absolute top-2 right-2 text-slate-500 hover:text-slate-800 text-lg">&times;</button>
+    </div>
+
+    <div class="mb-8">
+        <h3 class="text-lg font-bold text-slate-700 mb-4 bg-slate-50 p-3 rounded-md border border-slate-200 shadow-sm">1. Identidad Corporativa</h3>
+        <p class="text-sm text-slate-500 mb-3">Este nombre aparecerá en los encabezados de los reportes de Excel y en las Actas PDF oficiales.</p>
+        <div class="flex items-end gap-4">
+            <div class="flex-1">
+                <label for="empresaNombre" class="block text-sm font-semibold text-slate-700 mb-1">Nombre de la Empresa *</label>
+                <input type="text" id="empresaNombre" class="mt-1 block w-full rounded-md border-slate-300 p-2.5 border focus:ring-indigo-500 focus:border-indigo-500 bg-white" placeholder="Ej. ACME Corp">
+            </div>
+            <button id="btnGuardarEmpresa" type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-md transition shadow-sm" onclick="guardarNombreEmpresa()">
+                <i class="fas fa-save mr-1"></i> Actualizar Identidad
+            </button>
+        </div>
+    </div>
+
+    <div>
+        <h3 class="text-lg font-bold text-slate-700 mb-4 bg-slate-50 p-3 rounded-md border border-slate-200 shadow-sm">2. Gestión de Listas y Parámetros</h3>
+        <p class="text-sm text-slate-500 mb-4">Agrega o elimina valores que alimentan los menús desplegables en los módulos operativos.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50/50 p-4 rounded border border-slate-100">
+            <div class="md:col-span-1">
+                <label for="selectTipoLista" class="block text-sm font-semibold text-slate-700 mb-1">Seleccione la Lista a Editar</label>
+                <select id="selectTipoLista" class="mt-1 block w-full rounded-md border-slate-300 p-2.5 border focus:ring-indigo-500 focus:border-indigo-500 bg-white" onchange="cargarTablaLista()">
+                    <option value="">-- Seleccione Lista --</option>
+                    <option value="Departamentos">Departamentos</option>
+                    <option value="Cargos">Cargos</option>
+                    <option value="NomEmp">Nombres de Funcionarios</option>
+                    <option value="Generos">Géneros</option>
+                    <option value="TipoConsulta">Tipos de Consulta</option>
+                    <option value="Agendado">Respuestas Agendado</option>
+                </select>
+            </div>
+
+            <div class="md:col-span-2 flex items-end gap-3">
+                <div class="flex-1">
+                    <label for="nuevoItemValor" class="block text-sm font-semibold text-slate-700 mb-1">Nuevo Valor a Ingresar</label>
+                    <input type="text" id="nuevoItemValor" class="mt-1 block w-full rounded-md border-slate-300 p-2.5 border focus:ring-indigo-500 focus:border-indigo-500 bg-white" placeholder="Ej. Recursos Humanos">
+                </div>
+                <button id="btnAgregarItem" type="button" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-5 rounded-md transition shadow-sm" onclick="agregarItemLista()">
+                    <i class="fas fa-plus mr-1"></i> Agregar
+                </button>
+            </div>
+        </div>
+
+        <div class="mt-6 border border-slate-200 rounded-md overflow-hidden shadow-sm">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-100">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Valor Configurado</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-bold text-slate-600 uppercase tracking-wider">Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaListaBody" class="bg-white divide-y divide-slate-200">
+                    <tr><td colspan="2" class="px-6 py-8 text-center text-sm text-slate-400 italic">Seleccione una lista en el menú superior para ver sus elementos.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="loadingOverlayConfig" class="hidden absolute inset-0 bg-white bg-opacity-80 z-50 flex justify-center items-center backdrop-blur-sm rounded-xl">
+    <div class="bg-slate-800 p-6 rounded-xl flex flex-col items-center shadow-2xl border border-slate-700">
+        <i class="fas fa-spinner fa-spin text-4xl text-indigo-400 mb-4"></i>
+        <span class="text-white font-semibold tracking-wide" id="loadingTextConfig">Sincronizando...</span>
+    </div>
+</div>
+<div id="customConfirmModal" class="hidden fixed inset-0 bg-slate-900 bg-opacity-50 z-50 flex justify-center items-center backdrop-blur-sm p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border border-slate-200 transform transition-all scale-100">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="bg-amber-100 p-3 rounded-full text-amber-600">
+                    <i class="fas fa-exclamation-triangle text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800" id="confirmTitle">Confirmar Acción</h3>
+                    <p class="text-xs text-slate-500">Esta acción modificará la base de datos corporativa.</p>
+                </div>
+            </div>
+            <p id="confirmMessage" class="text-sm text-slate-600 mb-6 bg-slate-50 p-3 rounded-md border border-slate-100"></p>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="cerrarModalConfirmacion(false)" class="px-4 py-2 rounded-md border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 font-medium text-sm transition">
+                    Cancelar
+                </button>
+                <button type="button" id="btnConfirmAction" onclick="cerrarModalConfirmacion(true)" class="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white font-medium text-sm transition shadow-sm">
+                    Sí, Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+<script>
+    let configDataCompleta = [];
+
+    function mostrarNotificacion(type, msg) {
+        const notif = document.getElementById('configNotification');
+        const msgEl = document.getElementById('configNotifMessage');
+        
+        notif.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-700', 'border-emerald-200', 'bg-red-50', 'text-red-700', 'border-red-200', 'border');
+        
+        if(type === 'success') {
+            notif.classList.add('bg-emerald-50', 'text-emerald-700', 'border', 'border-emerald-200');
+            msgEl.innerHTML = '<i class="fas fa-check-circle mr-3 text-xl"></i><span>' + msg + '</span>';
+        } else {
+            notif.classList.add('bg-red-50', 'text-red-700', 'border', 'border-red-200');
+            msgEl.innerHTML = '<i class="fas fa-exclamation-triangle mr-3 text-xl"></i><span>' + msg + '</span>';
+        }
+        
+        // Auto-ocultar a los 6 segundos
+        setTimeout(() => notif.classList.add('hidden'), 6000);
+    }
+
+    function alternarCarga(mostrar, texto = 'Procesando transacciones...') {
+        const overlay = document.getElementById('loadingOverlayConfig');
+        document.getElementById('loadingTextConfig').textContent = texto;
+        if (mostrar) {
+            overlay.classList.remove('hidden');
+        } else {
+            overlay.classList.add('hidden');
+        }
+    }
+
+    function inicializarModuloConfig() {
+        alternarCarga(true, 'Leyendo Base de Datos...');
+        google.script.run
+            .withSuccessHandler(dataStr => {
+                configDataCompleta = JSON.parse(dataStr);
+                
+                // Extraer e inyectar el nombre de la empresa actual
+                const empresa = configDataCompleta.find(c => c.tipoLista === 'Empresa');
+                if (empresa) document.getElementById('empresaNombre').value = empresa.valorItem;
+                
+                cargarTablaLista(); // Refrescar tabla si hay algo seleccionado
+                alternarCarga(false);
+            })
+            .withFailureHandler(err => {
+                mostrarNotificacion('error', 'Fallo crítico al leer configuración: ' + err.message);
+                alternarCarga(false);
+            })
+            .getAllConfigData();
+    }
+
+    function guardarNombreEmpresa() {
+        const nuevoNombre = document.getElementById('empresaNombre').value.trim();
+        if(!nuevoNombre) {
+            mostrarNotificacion('error', 'El parámetro Empresa es obligatorio. No puede estar vacío.');
+            return;
+        }
+        
+        alternarCarga(true, 'Actualizando Identidad Corporativa...');
+        google.script.run
+            .withSuccessHandler(res => {
+                if(res.success) mostrarNotificacion('success', res.message);
+                else mostrarNotificacion('error', res.message);
+                alternarCarga(false);
+            })
+            .withFailureHandler(err => {
+                mostrarNotificacion('error', 'Error de red: ' + err.message);
+                alternarCarga(false);
+            })
+            .updateConfigParameter('Empresa', nuevoNombre);
+    }
+
+    function cargarTablaLista() {
+        const tipoSeleccionado = document.getElementById('selectTipoLista').value;
+        const tbody = document.getElementById('tablaListaBody');
+        
+        if(!tipoSeleccionado) {
+            tbody.innerHTML = '<tr><td colspan="2" class="px-6 py-8 text-center text-sm text-slate-400 italic">Seleccione una lista en el menú superior para ver sus elementos.</td></tr>';
+            return;
+        }
+
+        const itemsFiltrados = configDataCompleta.filter(c => c.tipoLista === tipoSeleccionado);
+        
+        if(itemsFiltrados.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="2" class="px-6 py-6 text-center text-sm font-semibold text-amber-600 bg-amber-50">Lista vacía. Comience a agregar valores.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = itemsFiltrados.map(item => `
+            <tr class="hover:bg-indigo-50/50 transition">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-700">${item.valorItem}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                    <button onclick="eliminarParametro('${item.tipoLista}', '${item.valorItem}')" class="bg-red-100 text-red-600 hover:bg-red-600 hover:text-white p-2 rounded transition" title="Eliminar este valor">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function agregarItemLista() {
+        const tipo = document.getElementById('selectTipoLista').value;
+        const valor = document.getElementById('nuevoItemValor').value.trim();
+
+        if(!tipo) { mostrarNotificacion('error', 'Es obligatorio seleccionar el tipo de lista primero.'); return; }
+        if(!valor) { mostrarNotificacion('error', 'El nuevo valor no puede estar en blanco.'); return; }
+
+        alternarCarga(true, 'Registrando nuevo valor...');
+        google.script.run
+            .withSuccessHandler(res => {
+                if(res.success) {
+                    mostrarNotificacion('success', res.message);
+                    document.getElementById('nuevoItemValor').value = '';
+                    inicializarModuloConfig(); // Forzar sincronización completa
+                } else {
+                    mostrarNotificacion('error', res.message);
+                }
+            })
+            .withFailureHandler(err => {
+                mostrarNotificacion('error', 'Error del servidor: ' + err.message);
+                alternarCarga(false);
+            })
+            .addConfigItem(tipo, valor);
+    }
+
+    // Variables globales para manejar la promesa del modal de confirmación
+    let confirmCallback = null;
+
+    function mostrarConfirmacionCustom(titulo, mensaje, callback) {
+        document.getElementById('confirmTitle').textContent = titulo;
+        document.getElementById('confirmMessage').textContent = mensaje;
+        confirmCallback = callback;
+        document.getElementById('customConfirmModal').classList.remove('hidden');
+    }
+
+    function cerrarModalConfirmacion(confirmado) {
+        document.getElementById('customConfirmModal').classList.add('hidden');
+        if (confirmCallback) {
+            confirmCallback(confirmado);
+            confirmCallback = null;
+        }
+    }
+
+    function eliminarParametro(tipo, valor) {
+        mostrarConfirmacionCustom(
+            "Eliminar Registro de Configuración",
+            `¿Confirma que desea eliminar "${valor}" permanentemente de la lista de ${tipo}?`,
+            function(confirmado) {
+                if (!confirmado) return;
+                
+                alternarCarga(true, 'Borrando registro...');
+                google.script.run
+                    .withSuccessHandler(res => {
+                        if(res.success) {
+                            mostrarNotificacion('success', res.message);
+                            inicializarModuloConfig(); // Forzar sincronización completa
+                        } else {
+                            mostrarNotificacion('error', res.message);
+                        }
+                    })
+                    .withFailureHandler(err => {
+                        mostrarNotificacion('error', 'Error crítico al procesar: ' + err.message);
+                        alternarCarga(false);
+                    })
+                    .deleteConfigItem(tipo, valor);
+            }
+        );
+    }
+
+    // Ejecutar al cargar la vista
+    inicializarModuloConfig();
+</script>

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log Activity - MeetFlow CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <style>
+    .search-results { border: 1px solid #cbd5e1; border-radius: 8px; max-height: 180px; overflow-y: auto; background-color: #fff; position: absolute; width: 100%; z-index: 20; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    .search-results div { padding: 0.75rem; border-bottom: 1px solid #f1f5f9; cursor: pointer; font-size: 0.9rem; color: #334155; }
+    .search-results div:hover { background-color: #eef2ff; color: #4338ca; }
+    .selected-user-display { background-color: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; padding: 0.5rem 0.75rem; border-radius: 8px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
+    .chip { display: inline-flex; align-items: center; background-color: #e0e7ff; color: #3730a3; border-radius: 9999px; padding: 0.25rem 0.75rem; font-size: 0.8rem; font-weight: 600; margin: 0.25rem; }
+    .chip button { background: none; border: none; color: #4338ca; margin-left: 0.5rem; cursor: pointer; font-size: 1rem; line-height: 1; }
+    .medio-card { border: 2px solid #e2e8f0; border-radius: 1rem; padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s ease; background: #fff; }
+    .medio-card:hover { border-color: #818cf8; transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(99,102,241,0.1); }
+    .loading-overlay-consulta { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255,255,255,0.85); display: flex; justify-content: center; align-items: center; z-index: 50; border-radius: 12px; backdrop-filter: blur(2px); }
+  </style>
+</head>
+<body class="bg-slate-50">
+  <div class="w-full max-w-4xl mx-auto bg-white p-8 md:p-10 rounded-xl shadow-sm border border-slate-100 relative">
+    <div id="loadingOverlay" class="loading-overlay-consulta" style="display: none;">
+      <div class="flex flex-col items-center justify-center text-indigo-500">
+        <i class="fas fa-circle-notch fa-spin fa-3x mb-3"></i>
+        <p class="font-semibold text-slate-600">Processing transaction...</p>
+      </div>
+    </div>
+
+    <header class="mb-8 border-b border-slate-100 pb-6">
+      <div class="flex items-center mb-2">
+        <i class="fas fa-calendar-check text-indigo-500 text-2xl mr-3"></i>
+        <h2 class="text-3xl font-bold text-slate-800">Log Operational Activity</h2>
+      </div>
+      <p class="mt-2 text-slate-500 text-sm">Select the interaction channel to register attendance, internal support, or work meetings.</p>
+    </header>
+
+    <div id="medioSelector" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="medio-card" onclick="seleccionarMedio('Presencial')"><i class="fas fa-building text-indigo-500 block text-4xl mb-2"></i><h3 class="font-bold text-slate-700">In-Person</h3><p class="text-xs text-slate-400 mt-1">On-site office</p></div>
+      <div class="medio-card" onclick="seleccionarMedio('Virtual')"><i class="fas fa-video text-blue-500 block text-4xl mb-2"></i><h3 class="font-bold text-slate-700">Virtual</h3><p class="text-xs text-slate-400 mt-1">Video call</p></div>
+      <div class="medio-card" onclick="seleccionarMedio('Ticket')"><i class="fas fa-ticket text-emerald-500 block text-4xl mb-2"></i><h3 class="font-bold text-slate-700">Ticket</h3><p class="text-xs text-slate-400 mt-1">Internal support</p></div>
+      <div class="medio-card" onclick="seleccionarMedio('Reunión')"><i class="fas fa-users-line text-amber-500 block text-4xl mb-2"></i><h3 class="font-bold text-slate-700">Meeting</h3><p class="text-xs text-slate-400 mt-1">Group session</p></div>
+    </div>
+
+    <form id="consultaForm" class="hidden space-y-6" novalidate>
+      <input type="hidden" id="medioAtencion" name="medioAtencion">
+      
+      <div class="flex justify-between items-center mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
+        <span class="text-sm font-semibold text-slate-600">Selected Channel: <span id="medioLabel" class="text-indigo-600 font-bold uppercase"></span></span>
+        <button type="button" onclick="cambiarMedio()" class="text-xs font-bold text-red-500 hover:text-red-700"><i class="fas fa-times mr-1"></i>Change Channel</button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div><label class="block text-sm font-semibold text-slate-700 mb-1">Date <span class="text-red-500">*</span></label><input type="date" id="fechaConsulta" name="fechaConsulta" required class="mt-1 block w-full rounded-md border-slate-300 p-2.5 border"></div>
+        <div id="horaVisitaGroup"><label class="block text-sm font-semibold text-slate-700 mb-1">Start Time <span class="text-red-500">*</span></label><input type="time" id="horaVisita" name="horaVisita" required class="mt-1 block w-full rounded-md border-slate-300 p-2.5 border"></div>
+        <div id="horaFinGroup"><label class="block text-sm font-semibold text-slate-700 mb-1">End Time <span class="text-red-500">*</span></label><input type="time" id="horaFin" name="horaFin" required class="mt-1 block w-full rounded-md border-slate-300 p-2.5 border"></div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Department <span class="text-red-500">*</span></label>
+          <select id="departamento" name="departamento" required class="mt-1 block w-full rounded-md border-slate-300 p-2.5 border bg-white"><option value="">Loading...</option></select>
+        </div>
+      </div>
+
+      <div id="ticketFieldGroup" class="hidden bg-emerald-50/50 p-4 rounded-lg border border-emerald-100">
+        <label class="block text-sm font-semibold text-slate-700 mb-1">Ticket / Incident Code <span class="text-red-500">*</span></label>
+        <input type="text" id="codigoTicket" name="codigoTicket" placeholder="e.g., HD-9842" class="mt-1 block w-full rounded-md border-slate-300 p-2.5 border bg-white">
+      </div>
+
+      <div id="singleUserSection" class="hidden">
+        <label class="block text-sm font-semibold text-slate-700 mb-1" id="singleUserLabel">Requesting Employee <span class="text-red-500">*</span></label>
+        <div class="mt-1 relative">
+          <div id="userSearchContainerSingle"><input type="text" id="searchUsuarioSingle" placeholder="Search by name, email or ID..." autocomplete="off" class="block w-full rounded-md border-slate-300 p-2.5 border"></div>
+          <div id="userSearchResultsSingle" class="search-results hidden"></div>
+          <div id="selectedUserDisplaySingle" class="hidden mt-2 selected-user-display"><span id="selectedUserNameSingle"></span><button type="button" onclick="clearSingleUser()" class="text-indigo-500 hover:text-red-500"><i class="fas fa-times-circle"></i></button></div>
+        </div>
+        <input type="hidden" id="singleUsuarioID">
+      </div>
+
+      <div id="reunionUserSection" class="hidden">
+        <label class="block text-sm font-semibold text-slate-700 mb-1">Session Attendees <span class="text-red-500">*</span></label>
+        <div class="mt-1 relative">
+          <input type="text" id="searchUsuarioReunion" placeholder="Type to search and add participants..." autocomplete="off" class="block w-full rounded-md border-slate-300 p-2.5 border">
+          <div id="userSearchResultsReunion" class="search-results hidden"></div>
+        </div>
+        <div id="participantesContainer" class="mt-3 flex flex-wrap gap-2 min-h-[40px] p-2 bg-slate-50 border border-slate-200 rounded-md"></div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div><label id="tipoConsultaLabel" class="block text-sm font-semibold text-slate-700 mb-1">Activity Type <span class="text-red-500">*</span></label><select id="tipoConsulta" name="tipoConsulta" required class="mt-1 block w-full rounded-md border-slate-300 p-2.5 border bg-white"><option value="">Loading...</option></select></div>
+        <div><label class="block text-sm font-semibold text-slate-700 mb-1">Assigned Officer <span class="text-red-500">*</span></label><select id="nombreFuncionarioQueAtendio" name="nombreFuncionarioQueAtendio" required class="mt-1 block w-full rounded-md border-slate-300 p-2.5 border bg-white"><option value="">Loading...</option></select></div>
+      </div>
+
+      <div id="temaFieldsGroup">
+        <label id="temaLabel" class="block text-sm font-semibold text-slate-700 mb-1">Subject / Agenda <span class="text-red-500">*</span></label>
+        <textarea id="temaOrdenDelDia" name="temaOrdenDelDia" rows="2" required class="mt-1 block w-full rounded-md border-slate-300 p-2.5 border" placeholder="Detail the objective of the interaction..."></textarea>
+      </div>
+
+      <div id="tipoSolucionGroup" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div><label class="block text-sm font-semibold text-slate-700 mb-1">Resolution / Status <span class="text-red-500">*</span></label><select id="tipoSolucion" name="tipoSolucion" required class="mt-1 block w-full rounded-md border-slate-300 p-2.5 border bg-white"><option value="">Select...</option><option value="RESOLVED">Resolved in session</option><option value="PENDING">Requires follow-up</option><option value="CLOSED">Escalated to management</option></select></div>
+        <div><label class="block text-sm font-semibold text-slate-700 mb-1">Pre-Scheduled? <span class="text-red-500">*</span></label><select id="agendadaPreviamente" name="agendadaPreviamente" required class="mt-1 block w-full rounded-md border-slate-300 p-2.5 border bg-white"><option value="">Loading...</option></select></div>
+      </div>
+
+      <div id="acuerdosFieldGroup">
+        <label id="acuerdosLabel" class="block text-sm font-semibold text-slate-700 mb-1">Action Items & Commitments <span class="text-red-500">*</span></label>
+        <textarea id="acuerdosCompromisos" name="acuerdosCompromisos" rows="3" required class="mt-1 block w-full rounded-md border-slate-300 p-2.5 border" placeholder="Specify actionable commitments..."></textarea>
+      </div>
+
+      <div class="flex justify-end pt-6 border-t border-slate-100 mt-8">
+        <button type="submit" id="saveBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-10 rounded-lg transition-all shadow-sm flex items-center justify-center">
+          <i class="fas fa-save mr-2"></i> Save Operational Log
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Notification Modal -->
+  <div id="notificationModal" class="fixed inset-0 bg-slate-900/70 hidden items-center justify-center z-[1] backdrop-blur-sm">
+    <div class="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full text-center border border-slate-100">
+      <div id="modalIconContainer" class="mb-4"></div>
+      <h3 id="notificationTitle" class="text-xl font-bold text-slate-800 mb-2"></h3>
+      <p id="notificationMessage" class="text-sm text-slate-600 mb-6"></p>
+      <button id="notificationOkBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-8 rounded-lg transition-colors w-full">Accept</button>
+    </div>
+  </div>
+
+  <script>
+    (function initConsultaFormLogic() {
+      let currentMedio = '';
+      let participantesReunion = [];
+
+      const medioSelector = document.getElementById('medioSelector');
+      const consultaForm = document.getElementById('consultaForm');
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      const saveBtn = document.getElementById('saveBtn');
+
+      window.seleccionarMedio = function(medio) {
+        currentMedio = medio;
+        document.getElementById('medioAtencion').value = medio;
+        
+        // Technical translation of the dynamic channel label
+        const displayLabels = {
+          'Presencial': 'In-Person',
+          'Virtual': 'Virtual',
+          'Ticket': 'Ticket',
+          'Reunión': 'Meeting'
+        };
+        document.getElementById('medioLabel').textContent = displayLabels[medio] || medio;
+        
+        medioSelector.classList.add('hidden');
+        consultaForm.classList.remove('hidden');
+
+        // Reset visibility
+        document.getElementById('ticketFieldGroup').classList.add('hidden');
+        document.getElementById('singleUserSection').classList.add('hidden');
+        document.getElementById('reunionUserSection').classList.add('hidden');
+        document.getElementById('horaVisitaGroup').classList.remove('hidden');
+        document.getElementById('horaFinGroup').classList.remove('hidden');
+
+        if (medio === 'Ticket') {
+          document.getElementById('ticketFieldGroup').classList.remove('hidden');
+          document.getElementById('singleUserSection').classList.remove('hidden');
+          document.getElementById('singleUserLabel').innerHTML = 'Reporting Employee <span class="text-red-500">*</span>';
+          document.getElementById('horaVisitaGroup').classList.add('hidden');
+          document.getElementById('horaFinGroup').classList.add('hidden');
+        } else if (medio === 'Reunión') {
+          document.getElementById('reunionUserSection').classList.remove('hidden');
+          document.getElementById('temaLabel').innerHTML = 'Meeting Objective <span class="text-red-500">*</span>';
+          document.getElementById('acuerdosLabel').innerHTML = 'Action Plan / Commitments <span class="text-red-500">*</span>';
+        } else {
+          document.getElementById('singleUserSection').classList.remove('hidden');
+          document.getElementById('singleUserLabel').innerHTML = 'Requesting Employee <span class="text-red-500">*</span>';
+          document.getElementById('temaLabel').innerHTML = 'Subject Handled <span class="text-red-500">*</span>';
+          document.getElementById('acuerdosLabel').innerHTML = 'Result Provided <span class="text-red-500">*</span>';
+        }
+      };
+
+      window.cambiarMedio = function() {
+        currentMedio = '';
+        consultaForm.classList.add('hidden');
+        medioSelector.classList.remove('hidden');
+        clearSingleUser();
+        participantesReunion = [];
+        renderParticipantes();
+      };
+
+      function setupSearch(inputId, resultsId, onSelect) {
+        const input = document.getElementById(inputId);
+        const results = document.getElementById(resultsId);
+        let searchTimeout;
+
+        input.addEventListener('input', function() {
+          clearTimeout(searchTimeout);
+          const query = this.value.trim();
+          if (query.length < 3) { results.classList.add('hidden'); return; }
+
+          results.innerHTML = '<div class="p-3 text-slate-500 italic text-center"><i class="fas fa-spinner fa-spin mr-2"></i>Searching directory...</div>';
+          results.classList.remove('hidden');
+
+          searchTimeout = setTimeout(() => {
+            google.script.run.withSuccessHandler(usersStr => {
+              const users = JSON.parse(usersStr);
+              results.innerHTML = '';
+              if (users && users.length > 0) {
+                users.forEach(u => {
+                  const div = document.createElement('div');
+                  div.innerHTML = `<strong>${u.nombreCompleto}</strong> <span class="text-xs bg-slate-100 px-1.5 py-0.5 rounded text-indigo-600 font-mono">${u.numeroEmpleado || 'N/A'}</span><br><span class="text-xs text-slate-500">${u.correoCorporativo}</span>`;
+                  div.addEventListener('click', () => onSelect(u, input, results));
+                  results.appendChild(div);
+                });
+              } else {
+                results.innerHTML = '<div class="text-slate-500 italic p-3 text-center">No records found.</div>';
+              }
+            }).withFailureHandler(() => {
+              results.innerHTML = '<div class="text-red-500 p-3 text-center text-xs">Read error. Please retry.</div>';
+            }).searchUsuarios(query);
+          }, 400);
+        });
+      }
+
+      function selectSingleUser(user, input, results) {
+        document.getElementById('singleUsuarioID').value = user.usuarioID;
+        document.getElementById('selectedUserNameSingle').textContent = `${user.nombreCompleto} (${user.numeroEmpleado || user.correoCorporativo})`;
+        document.getElementById('selectedUserDisplaySingle').classList.remove('hidden');
+        document.getElementById('userSearchContainerSingle').classList.add('hidden');
+        input.value = '';
+        results.classList.add('hidden');
+      }
+
+      function clearSingleUser() {
+        document.getElementById('singleUsuarioID').value = '';
+        document.getElementById('selectedUserNameSingle').textContent = '';
+        document.getElementById('selectedUserDisplaySingle').classList.add('hidden');
+        document.getElementById('userSearchContainerSingle').classList.remove('hidden');
+      }
+      window.clearSingleUser = clearSingleUser;
+
+      function selectReunionUser(user, input, results) {
+        if (!participantesReunion.find(p => p.usuarioID === user.usuarioID)) {
+          participantesReunion.push({ usuarioID: user.usuarioID, nombre: user.nombreCompleto, rol: 'Asistente' });
+          renderParticipantes();
+        }
+        input.value = '';
+        results.classList.add('hidden');
+      }
+
+      window.removeParticipante = function(id) {
+        participantesReunion = participantesReunion.filter(p => p.usuarioID !== id);
+        renderParticipantes();
+      };
+
+      function renderParticipantes() {
+        const container = document.getElementById('participantesContainer');
+        container.innerHTML = '';
+        if(participantesReunion.length === 0) {
+          container.innerHTML = '<span class="text-xs text-slate-400 italic p-1">No participants added yet.</span>';
+          return;
+        }
+        participantesReunion.forEach(p => {
+          const chip = document.createElement('span');
+          chip.className = 'chip';
+          chip.innerHTML = `${p.nombre} <button type="button" onclick="removeParticipante('${p.usuarioID}')">×</button>`;
+          container.appendChild(chip);
+        });
+      }
+
+      setupSearch('searchUsuarioSingle', 'userSearchResultsSingle', selectSingleUser);
+      setupSearch('searchUsuarioReunion', 'userSearchResultsReunion', selectReunionUser);
+
+      function populateSelect(elementId, data) {
+        const select = document.getElementById(elementId);
+        select.innerHTML = '<option value="">-- Select --</option>';
+        if (data && data.length > 0) data.forEach(item => select.add(new Option(item, item)));
+      }
+
+      function loadInitialData() {
+        const loadSafe = (listName, targetId) => {
+          google.script.run.withSuccessHandler(res => populateSelect(targetId, JSON.parse(res)))
+            .withFailureHandler(() => {
+              const s = document.getElementById(targetId);
+              if(s) s.innerHTML = '<option value="">Network error</option>';
+            }).getDropdownData(listName);
+        };
+        loadSafe('TipoConsulta', 'tipoConsulta');
+        loadSafe('NomEmp', 'nombreFuncionarioQueAtendio');
+        loadSafe('Agendado', 'agendadaPreviamente');
+        loadSafe('Departamentos', 'departamento');
+      }
+
+      function showNotification(type, title, msg) {
+        document.getElementById('notificationTitle').textContent = title;
+        document.getElementById('notificationMessage').textContent = msg;
+        document.getElementById('modalIconContainer').innerHTML = type === 'success' 
+          ? '<i class="fas fa-check-circle text-green-500 text-5xl"></i>' 
+          : '<i class="fas fa-exclamation-triangle text-red-400 text-5xl"></i>';
+        const modal = document.getElementById('notificationModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+
+      document.getElementById('notificationOkBtn').addEventListener('click', () => {
+        const modal = document.getElementById('notificationModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      });
+
+      consultaForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        let participantesPayload = [];
+
+        if (currentMedio === 'Reunión') {
+          if (participantesReunion.length === 0) {
+            showNotification('error', 'Empty Session', 'You must link at least one participant to the meeting.');
+            return;
+          }
+          participantesPayload = participantesReunion.map(p => ({ usuarioID: p.usuarioID, rol: 'Asistente' }));
+        } else {
+          const singleId = document.getElementById('singleUsuarioID').value;
+          if (!singleId) {
+            showNotification('error', 'Employee Missing', 'You must select an employee from the directory.');
+            return;
+          }
+          participantesPayload.push({ usuarioID: singleId, rol: 'Solicitante' });
+        }
+
+        const formData = new FormData(consultaForm);
+        const consultaData = Object.fromEntries(formData);
+
+        if(currentMedio === 'Ticket') {
+          consultaData.horaVisita = '00:00';
+          consultaData.horaFin = '00:00';
+          consultaData.agendadaPreviamente = 'SI';
+        }
+
+        if (currentMedio !== 'Ticket' && consultaData.horaFin <= consultaData.horaVisita) {
+          showNotification('error', 'Time Inconsistency', 'The end time must be strictly after the start time.');
+          return;
+        }
+
+        const payload = { consultaData: consultaData, participantes: participantesPayload };
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Processing...';
+        loadingOverlay.style.display = 'flex';
+
+        google.script.run.withSuccessHandler(result => {
+          loadingOverlay.style.display = 'none';
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = '<i class="fas fa-save mr-2"></i> Save Operational Log';
+          if (result && result.success) {
+            showNotification('success', 'Transaction Completed', result.message);
+            consultaForm.reset();
+            clearSingleUser();
+            participantesReunion = [];
+            renderParticipantes();
+            cambiarMedio();
+          } else {
+            showNotification('error', 'Database Rejection', result ? result.message : 'Unknown server error.');
+          }
+        }).withFailureHandler(err => {
+          loadingOverlay.style.display = 'none';
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = '<i class="fas fa-save mr-2"></i> Save Operational Log';
+          showNotification('error', 'Critical Network Error', err.message);
+        }).createConsulta(payload);
+      });
+
+      loadInitialData();
+    })();
+  </script>
+</body>
+</html>

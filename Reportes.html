@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reporting Center - MeetFlow CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <style>
+    .loading-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255,255,255,0.85); display: flex; justify-content: center; align-items: center; z-index: 50; border-radius: 12px; backdrop-filter: blur(2px); }
+    .report-card { border: 2px solid #e2e8f0; border-radius: 1rem; padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s ease; background: #fff; }
+    .report-card:hover { border-color: #818cf8; transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(99,102,241,0.1); }
+    .report-card.active { border-color: #4f46e5; background-color: #eef2ff; }
+  </style>
+</head>
+<body class="bg-slate-50">
+  <div class="w-full max-w-5xl mx-auto bg-white p-8 md:p-10 rounded-xl shadow-sm border border-slate-100 relative">
+    
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+      <div class="flex flex-col items-center justify-center text-indigo-500">
+        <i class="fas fa-circle-notch fa-spin fa-3x mb-3"></i>
+        <p class="font-semibold text-slate-600">Generating document and processing data...</p>
+      </div>
+    </div>
+
+    <header class="mb-8 border-b border-slate-100 pb-6">
+      <div class="flex items-center mb-2">
+        <i class="fas fa-chart-bar text-indigo-500 text-2xl mr-3"></i>
+        <h2 class="text-3xl font-bold text-slate-800">Reporting Center</h2>
+      </div>
+      <p class="mt-2 text-slate-500 text-sm">Audit operational staff productivity or extract official session minutes in PDF format.</p>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div class="report-card" id="cardExcel" onclick="seleccionarReporte('Excel')">
+        <i class="fas fa-file-excel text-emerald-500 text-4xl mb-3 block"></i>
+        <h3 class="font-bold text-slate-700 text-lg">Operational Audit (.xlsx)</h3>
+        <p class="text-slate-500 text-xs mt-1">Bulk download of incidents, support, and meetings filtered by officer.</p>
+      </div>
+
+      <div class="report-card" id="cardPDF" onclick="seleccionarReporte('PDF')">
+        <i class="fas fa-file-pdf text-red-500 text-4xl mb-3 block"></i>
+        <h3 class="font-bold text-slate-700 text-lg">Executive Session Minutes</h3>
+        <p class="text-slate-500 text-xs mt-1">Department-based search and instant export of signed minutes in PDF.</p>
+      </div>
+    </div>
+
+    <!-- Excel Section -->
+    <div id="seccionExcel" class="hidden space-y-6 border-t border-slate-100 pt-8">
+      <h3 class="text-xl font-bold text-slate-800">1. Export Activity Logs</h3>
+      <p class="text-sm text-slate-500">Select an assigned officer to evaluate individual metrics or extract the global corporate record.</p>
+      <div class="flex items-center gap-4">
+        <select id="reporteFuncionarioSelect" class="text-sm border border-slate-200 rounded-lg p-2.5 bg-white focus:ring-indigo-500 focus:border-indigo-500 flex-grow">
+          <option value="Todos">All Officers (Corporate Consolidated)</option>
+        </select>
+        <button type="button" onclick="generarExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-lg transition-all shadow-sm flex items-center shrink-0">
+          <i class="fas fa-download mr-2"></i> Generate Excel
+        </button>
+      </div>
+    </div>
+
+    <!-- PDF Section -->
+    <div id="seccionPDF" class="hidden space-y-6 border-t border-slate-100 pt-8">
+      <h3 class="text-xl font-bold text-slate-800">2. Meeting Explorer by Department</h3>
+      <p class="text-sm text-slate-500">Filter interactions by corporate area to display history and generate backup documentation.</p>
+      <div class="flex items-center gap-4">
+        <select id="filtroDepartamentoPDF" class="text-sm border border-slate-200 rounded-lg p-2.5 bg-white focus:ring-indigo-500 focus:border-indigo-500 flex-grow" onchange="buscarReuniones()">
+          <option value="">-- Select Department --</option>
+        </select>
+      </div>
+
+      <div id="tablaReunionesContainer" class="hidden mt-6">
+        <div class="overflow-x-auto border border-slate-200 rounded-lg">
+          <table class="w-full text-left border-collapse">
+            <thead class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
+              <tr>
+                <th class="p-4 border-b font-semibold">ID</th>
+                <th class="p-4 border-b font-semibold">Date / Time</th>
+                <th class="p-4 border-b font-semibold">Channel / Ref.</th>
+                <th class="p-4 border-b font-semibold">Subject Handled</th>
+                <th class="p-4 border-b font-semibold">Action</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-reuniones" class="text-slate-700 divide-y divide-slate-100">
+              <tr><td colspan="5" class="p-8 text-center text-slate-400">Select a department to start the query.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function initReportes() {
+      const loadingOverlay = document.getElementById('loadingOverlay');
+
+      function populateSelect(elementId, data) {
+        const select = document.getElementById(elementId);
+        if(!select) return;
+        select.innerHTML = elementId === 'reporteFuncionarioSelect' 
+          ? '<option value="Todos">All Officers (Corporate Consolidated)</option>' 
+          : '<option value="">-- Select Department --</option>';
+        if (data && data.length > 0) {
+          data.forEach(item => select.add(new Option(item, item)));
+        }
+      }
+
+      google.script.run.withSuccessHandler(res => populateSelect('reporteFuncionarioSelect', JSON.parse(res))).getDropdownData('NomEmp');
+      google.script.run.withSuccessHandler(res => populateSelect('filtroDepartamentoPDF', JSON.parse(res))).getDropdownData('Departamentos');
+
+      window.seleccionarReporte = function(tipo) {
+        document.getElementById('cardExcel').classList.remove('active');
+        document.getElementById('cardPDF').classList.remove('active');
+        document.getElementById('seccionExcel').classList.add('hidden');
+        document.getElementById('seccionPDF').classList.add('hidden');
+
+        if (tipo === 'Excel') {
+          document.getElementById('cardExcel').classList.add('active');
+          document.getElementById('seccionExcel').classList.remove('hidden');
+        } else {
+          document.getElementById('cardPDF').classList.add('active');
+          document.getElementById('seccionPDF').classList.remove('hidden');
+        }
+      };
+
+      function descargarArchivo(fileUrl) {
+        google.script.run
+          .withFailureHandler(error => {
+            loadingOverlay.style.display = 'none';
+            alert("Network or server error: " + error.message);
+          })
+          .withSuccessHandler(fileObj => {
+            loadingOverlay.style.display = 'none';
+            if (fileObj.success) {
+              const byteCharacters = atob(fileObj.base64);
+              const byteNumbers = new Array(byteCharacters.length);
+              for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+              }
+              const byteArray = new Uint8Array(byteNumbers);
+              const blob = new Blob([byteArray], { type: fileObj.mimeType });
+              const link = document.createElement('a');
+              link.href = URL.createObjectURL(blob);
+              link.download = fileObj.fileName;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(link.href);
+            } else {
+              alert("File error: " + fileObj.error);
+            }
+          })
+          .getFileForDownload(fileUrl);
+      }
+
+      window.generarExcel = function() {
+        const funcionario = document.getElementById('reporteFuncionarioSelect').value;
+        if(!funcionario) {
+          alert("Please select an officer.");
+          return;
+        }
+        loadingOverlay.style.display = 'flex';
+        google.script.run
+          .withFailureHandler(error => {
+            loadingOverlay.style.display = 'none';
+            alert("Connection error: " + error.message);
+          })
+          .withSuccessHandler(result => {
+            if (result.success) {
+              descargarArchivo(result.fileUrl);
+            } else {
+              loadingOverlay.style.display = 'none';
+              alert(result.message);
+            }
+          })
+          .generarReporteConsultasSheet(funcionario);
+      };
+
+      window.buscarReuniones = function() {
+        const departamento = document.getElementById('filtroDepartamentoPDF').value;
+        const container = document.getElementById('tablaReunionesContainer');
+        const tbody = document.getElementById('tbody-reuniones');
+
+        if (!departamento) {
+          container.classList.add('hidden');
+          return;
+        }
+
+        container.classList.remove('hidden');
+        tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i>Querying database...</td></tr>';
+
+        google.script.run
+          .withFailureHandler(error => {
+            tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500"><i class="fas fa-exclamation-triangle mr-2"></i>Error: ${error.message}</td></tr>`;
+          })
+          .withSuccessHandler(reunionesStr => {
+            const reuniones = JSON.parse(reunionesStr);
+            if (!reuniones || reuniones.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-400">No interactions recorded for this department.</td></tr>';
+              return;
+            }
+            tbody.innerHTML = reuniones.map(r => `
+              <tr class="hover:bg-slate-50 transition">
+                <td class="p-4 text-sm font-bold text-indigo-600">${r.id}</td>
+                <td class="p-4 text-sm text-slate-600">${r.fecha}<br><span class="text-xs text-slate-400">${r.hora}</span></td>
+                <td class="p-4 text-sm text-slate-600"><span class="bg-slate-100 px-2 py-0.5 rounded text-xs font-semibold text-slate-700">${r.canal || 'Meeting'}</span>${r.ticket ? `<br><span class="text-xs text-emerald-600 font-mono">${r.ticket}</span>` : ''}</td>
+                <td class="p-4 text-sm text-slate-800 font-medium">${r.tema}</td>
+                <td class="p-4 text-sm">
+                  <button onclick="generarPDF('${r.id}')" class="bg-red-500 hover:bg-red-600 text-white font-bold py-1.5 px-3 rounded text-xs transition shadow-sm flex items-center">
+                    <i class="fas fa-file-pdf mr-1.5"></i>Minutes PDF
+                  </button>
+                </td>
+              </tr>
+            `).join('');
+          })
+          .getReunionesPorDepartamento(departamento);
+      };
+
+      window.generarPDF = function(consultaID) {
+        loadingOverlay.style.display = 'flex';
+        google.script.run
+          .withFailureHandler(error => {
+            loadingOverlay.style.display = 'none';
+            alert("Connection error while generating PDF: " + error.message);
+          })
+          .withSuccessHandler(result => {
+            if (result.success) {
+              descargarArchivo(result.fileUrl);
+            } else {
+              loadingOverlay.style.display = 'none';
+              alert(result.message);
+            }
+          })
+          .generarActaReunionPDF(consultaID);
+      };
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+<div class="w-full">
+  <header class="mb-8 border-b border-slate-100 pb-6">
+    <div class="flex items-center mb-2">
+      <i class="fas fa-chart-line text-indigo-500 text-2xl mr-3"></i>
+      <h2 class="text-3xl font-bold text-slate-800">Executive Operations Dashboard</h2>
+    </div>
+    <p class="text-slate-500 text-sm">Operational control metrics, internal resolutions, and personnel interactions in MeetFlow.</p>
+  </header>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5 mb-8">
+    <!-- Interaction KPI -->
+    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between">
+      <div class="flex justify-between items-center mb-1">
+        <h4 class="text-xs text-slate-500 uppercase font-bold tracking-wider">Interactions</h4>
+        <i class="fas fa-clipboard-list text-indigo-400 text-lg"></i>
+      </div>
+      <select id="filtroTipoConsulta" class="text-xs text-slate-600 border border-slate-200 rounded-md p-1 mb-3 bg-slate-50 focus:outline-none w-full font-medium">
+        <option value="Todas">All Activities</option>
+      </select>
+      <div id="kpi-consultas" class="text-4xl font-black text-indigo-600">--</div>
+    </div>
+
+    <!-- Channel KPI -->
+    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between">
+      <div class="flex justify-between items-center mb-3">
+        <h4 class="text-xs text-slate-500 uppercase font-bold tracking-wider">Interaction Channel</h4>
+        <i class="fas fa-layer-group text-blue-400 text-lg"></i>
+      </div>
+      <div class="space-y-1.5 mt-auto text-xs font-semibold">
+        <div class="flex justify-between items-center"><span class="text-slate-600">On-site</span> <span id="kpi-presencial" class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded">0</span></div>
+        <div class="flex justify-between items-center"><span class="text-slate-600">Virtual</span> <span id="kpi-virtual" class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded">0</span></div>
+        <div class="flex justify-between items-center"><span class="text-slate-600">Tickets</span> <span id="kpi-ticket" class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">0</span></div>
+        <div class="flex justify-between items-center"><span class="text-slate-600">Meetings</span> <span id="kpi-reunion" class="bg-amber-50 text-amber-700 px-2 py-0.5 rounded">0</span></div>
+      </div>
+    </div>
+
+    <!-- Status KPI -->
+    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between">
+      <div class="flex justify-between items-center mb-3">
+        <h4 class="text-xs text-slate-500 uppercase font-bold tracking-wider">Operational Status</h4>
+        <i class="fas fa-check-double text-emerald-400 text-lg"></i>
+      </div>
+      <div class="flex items-end gap-2 mt-auto">
+        <div>
+          <span id="kpi-resueltas" class="text-3xl font-black text-emerald-600">--</span>
+          <p class="text-[11px] text-slate-400 mt-1 font-medium">Resolved</p>
+        </div>
+        <div class="text-xl text-slate-300 font-light mb-2">/</div>
+        <div>
+          <span id="kpi-pendientes" class="text-2xl font-bold text-amber-500">--</span>
+          <p class="text-[11px] text-slate-400 mt-1 font-medium">In Progress</p>
+        </div>
+        <div class="text-xl text-slate-300 font-light mb-2">/</div>
+        <div>
+          <span id="kpi-cerradas" class="text-2xl font-bold text-slate-500">--</span>
+          <p class="text-[11px] text-slate-400 mt-1 font-medium">closed</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Workforce KPI -->
+    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between">
+      <div class="flex justify-between items-center mb-3">
+        <h4 class="text-xs text-slate-500 uppercase font-bold tracking-wider">Workforce</h4>
+        <i class="fas fa-users text-blue-400 text-lg"></i>
+      </div>
+      <div>
+        <div id="kpi-usuarios" class="text-4xl font-black text-blue-600">--</div>
+        <p class="text-[11px] text-slate-400 mt-1 font-medium">Database Records</p>
+      </div>
+    </div>
+
+    <!-- Time KPI -->
+    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between">
+      <div class="flex justify-between items-center mb-3">
+        <h4 class="text-xs text-slate-500 uppercase font-bold tracking-wider">Time Invested</h4>
+        <i class="fas fa-stopwatch text-indigo-400 text-lg"></i>
+      </div>
+      <div class="flex items-baseline mt-auto">
+        <div id="kpi-duracion" class="text-4xl font-black text-slate-700">--</div>
+        <span class="text-xs font-bold text-slate-400 ml-1.5 uppercase">min / session</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Activities Table -->
+  <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+    <div class="flex justify-between items-center mb-5">
+      <h3 class="text-lg font-bold text-slate-800">Recent Operational History</h3>
+      <span class="text-xs bg-slate-100 text-slate-600 py-1 px-3 rounded-full font-semibold">Last 5 Transactions</span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
+          <tr>
+            <th class="p-4 border-b font-semibold">Date</th>
+            <th class="p-4 border-b font-semibold">Channel</th>
+            <th class="p-4 border-b font-semibold">Personnel Involved</th>
+            <th class="p-4 border-b font-semibold">Assigned Officer</th>
+            <th class="p-4 border-b font-semibold">Activity / Resolution</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-dashboard" class="text-slate-700 divide-y divide-slate-100">
+          <tr>
+            <td class="p-4"><div class="h-4 bg-slate-100 rounded w-20 animate-pulse"></div></td>
+            <td class="p-4"><div class="h-4 bg-slate-100 rounded w-16 animate-pulse"></div></td>
+            <td class="p-4"><div class="h-4 bg-slate-100 rounded w-40 animate-pulse"></div></td>
+            <td class="p-4"><div class="h-4 bg-slate-100 rounded w-24 animate-pulse"></div></td>
+            <td class="p-4"><div class="h-4 bg-slate-100 rounded w-32 animate-pulse"></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+(function initDashboard() {
+  const contentArea = document.getElementById('tbody-dashboard');
+  const selectFiltroTipo = document.getElementById('filtroTipoConsulta');
+  const kpiConsultas = document.getElementById('kpi-consultas');
+  let desgloseTipos = {};
+  let totalConsultasGlobal = 0;
+
+  function getBadge(txt) {
+    const colors = {
+      'Presencial': 'bg-indigo-50 text-indigo-700 border-indigo-100',
+      'Virtual': 'bg-blue-50 text-blue-700 border-blue-100',
+      'Ticket': 'bg-emerald-50 text-emerald-700 border-emerald-100',
+      'Reunión': 'bg-amber-50 text-amber-700 border-amber-100',
+      'Resuelto': 'bg-emerald-100 text-emerald-800',
+      'Resuelto en sesión': 'bg-emerald-100 text-emerald-800'
+    };
+    
+    // Internal label translation for badges
+    const translation = {
+      'Presencial': 'On-site',
+      'Virtual': 'Virtual',
+      'Ticket': 'Ticket',
+      'Reunión': 'Meeting',
+      'Resuelto': 'Resolved',
+      'Resuelto en sesión': 'Resolved in Session'
+    };
+
+    const cls = colors[txt] || 'bg-slate-100 text-slate-600 border-slate-200';
+    return `<span class="inline-block border ${cls} py-0.5 px-2 rounded text-xs font-bold">${translation[txt] || txt || 'N/A'}</span>`;
+  }
+
+  google.script.run
+    .withSuccessHandler(response => {
+      if(response && response.success) {
+        const data = response.data;
+        desgloseTipos = data.conteoPorTipo || {};
+        const desgloseMedios = data.conteoPorMedio || {};
+        totalConsultasGlobal = data.kpis.totalConsultas || 0;
+
+        selectFiltroTipo.innerHTML = '<option value="Todas">All Activities</option>';
+        Object.keys(desgloseTipos).sort().forEach(tipo => selectFiltroTipo.add(new Option(tipo, tipo)));
+
+        kpiConsultas.textContent = totalConsultasGlobal;
+        document.getElementById('kpi-resueltas').textContent = data.kpis.totalResueltas || 0;
+        document.getElementById('kpi-pendientes').textContent = data.kpis.totalPendientes || 0;
+        document.getElementById('kpi-cerradas').textContent = data.kpis.totalCerradas || 0;
+        document.getElementById('kpi-usuarios').textContent = data.kpis.totalUsuarios || 0;
+        document.getElementById('kpi-duracion').textContent = data.kpis.promedioDuracion || 0;
+
+        document.getElementById('kpi-presencial').textContent = desgloseMedios['Presencial'] || 0;
+        document.getElementById('kpi-virtual').textContent = desgloseMedios['Virtual'] || 0;
+        document.getElementById('kpi-ticket').textContent = desgloseMedios['Ticket'] || 0;
+        document.getElementById('kpi-reunion').textContent = desgloseMedios['Reunión'] || 0;
+
+        if(!data.ultimasActividades || data.ultimasActividades.length === 0) {
+          contentArea.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-slate-400 italic">No activity logs found in the database.</td></tr>`;
+          return;
+        }
+
+        contentArea.innerHTML = data.ultimasActividades.map(act => `
+          <tr class="hover:bg-slate-50/80 transition duration-150">
+            <td class="p-4 text-sm text-slate-500 whitespace-nowrap font-medium">${act.fecha || 'N/A'}</td>
+            <td class="p-4 text-sm whitespace-nowrap">${getBadge(act.medio)}</td>
+            <td class="p-4 text-sm text-slate-600 max-w-xs truncate" title="${act.participantes}"><i class="fas fa-user-circle mr-1 text-slate-400"></i>${act.participantes || 'No staff assigned'}</td>
+            <td class="p-4 text-sm text-slate-800 font-semibold">${act.funcionario || 'Unassigned'}</td>
+            <td class="p-4 text-sm text-slate-600"><span class="font-bold text-slate-700 block">${act.tipo || 'General'}</span><span class="text-xs text-slate-400">${act.resolucion || ''}</span></td>
+          </tr>
+        `).join('');
+
+      } else {
+        contentArea.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500 font-semibold">Error processing metrics: ${response ? response.message : 'Unknown'}</td></tr>`;
+      }
+    })
+    .withFailureHandler(err => {
+      contentArea.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500 font-semibold">Network failure: ${err.message}</td></tr>`;
+    })
+    .getDatosDashboard();
+
+  selectFiltroTipo.addEventListener('change', (e) => {
+    kpiConsultas.textContent = e.target.value === 'Todas' ? totalConsultasGlobal : (desgloseTipos[e.target.value] || 0);
+  });
+})();
+</script>
